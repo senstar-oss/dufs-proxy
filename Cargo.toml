@@ -2,11 +2,11 @@
 name = "dufs-proxy"
 version = "0.41.2"
 edition = "2021"
-authors = ["sigoden <sigoden@gmail.com>"]
-description = "Dufs is a distinctive utility file server"
+authors = ["sigoden <sigoden@gmail.com>", "senstar-aacker"]
+description = "Dufs is a distinctive utility file server (with dufs-proxy modification)"
 license = "MIT OR Apache-2.0"
-homepage = "https://github.com/sigoden/dufs"
-repository = "https://github.com/sigoden/dufs"
+homepage = "https://github.com/senstar-aacker/dufs-proxy"
+repository = "https://github.com/senstar-aacker/dufs-proxy"
 categories = ["command-line-utilities", "web-programming::http-server"]
 keywords = ["static", "file", "server", "webdav", "cli"]
 
