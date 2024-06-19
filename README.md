@@ -17,7 +17,7 @@ Dufs is a distinctive utility file server that supports static serving, uploadin
 
 ## dufs-proxy modifications
 - Must enable upload with ``-A`` or ``--allow-upload`` to allow the proxy url to download files
-- Hard-coded proxy url in src/server.rs variable name ``GET_PROXY_URL``'
+- Hard-coded proxy url in src/server.rs variable name ``GET_PROXY_URL``
 - Only major code change is on GET if request is a file and file doesn't exist then first try to download the file from the proxy and send it on success
 - Removed TLS support and relevant crate dependencies to lower compile times and file size
 
