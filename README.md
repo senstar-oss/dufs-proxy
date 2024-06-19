@@ -11,9 +11,9 @@ Dufs is a distinctive utility file server that supports static serving, uploadin
 ## dufs-proxy rebuilding and running
 - Ensure rust toolchain is installed
 - Run ``cargo build --release`` in the root of the project
-- Grab the exe from ``target/release/dufs.exe`` place the exe in the project root
+- Grab the exe from ``target/release/dufs-proxy.exe`` place the exe in the project root
 - Create the server dir ``mkdir server``
-- Run the server ``dufs.exe -A -p 8000 server``
+- Run the server ``dufs-proxy.exe -A -p 8000 server``
 
 ## dufs-proxy modifications
 - Must enable upload with ``-A`` or ``--allow-upload`` to allow the proxy url to download files
