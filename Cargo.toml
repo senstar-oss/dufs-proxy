@@ -1,6 +1,6 @@
 [package]
 name = "dufs-proxy"
-version = "0.41.2"
+version = "0.41.3"
 edition = "2021"
 authors = ["sigoden <sigoden@gmail.com>", "senstar-aacker"]
 description = "Dufs is a distinctive utility file server (with dufs-proxy modification)"
