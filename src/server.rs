@@ -8,7 +8,7 @@ use crate::utils::{
 };
 use crate::Args;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, ensure, Result};
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipDateTime, ZipEntryBuilder};
 use bytes::Bytes;
 use chrono::{LocalResult, TimeZone, Utc};
@@ -794,8 +794,12 @@ impl Server {
     async fn handle_proxy_download(&self, path: &Path, rel_path: &str) -> Result<()> {
         ensure_path_parent(path).await?;
         let url = format!("{}{}", GET_PROXY_URL, rel_path);
-        eprintln!("GET url: {}", url);
+        eprintln!("PROXY: GET url: {}", url);
         let response = reqwest::get(url).await?;
+        ensure!(
+            response.status() == StatusCode::OK,
+            "PROXY: FAIL: File not found!"
+        );
         let mut file = fs::File::create(path).await?;
         let mut content = std::io::Cursor::new(response.bytes().await?);
         io::copy(&mut content, &mut file).await?;
