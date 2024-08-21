@@ -61,6 +61,7 @@ const INDEX_NAME: &str = "index.html";
 const BUF_SIZE: usize = 65536;
 const EDITABLE_TEXT_MAX_SIZE: u64 = 4194304; // 4M
 const RESUMABLE_UPLOAD_MIN_SIZE: u64 = 20971520; // 20M
+const MARKDOWN_README_TEXT_MAX_SIZE: u64 = 1048576; // 1M
 
 pub struct Server {
     args: Args,
@@ -564,6 +565,7 @@ impl Server {
             access_paths,
             res,
         )
+        .await
     }
 
     async fn handle_search_dir(
@@ -644,6 +646,7 @@ impl Server {
             access_paths,
             res,
         )
+        .await
     }
 
     async fn handle_zip_dir(
@@ -1114,7 +1117,7 @@ impl Server {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn send_index(
+    async fn send_index(
         &self,
         path: &Path,
         mut paths: Vec<PathItem>,
@@ -1170,6 +1173,12 @@ impl Server {
             normalize_path(path.strip_prefix(&self.args.serve_path)?)
         );
         let readwrite = access_paths.perm().readwrite();
+
+        let maybe_readme_md = paths
+            .iter()
+            .find(|p| p.base_name().to_lowercase() == "readme.md")
+            .cloned();
+
         let data = IndexData {
             kind: DataKind::Index,
             href,
@@ -1190,12 +1199,18 @@ impl Server {
         } else {
             res.headers_mut()
                 .typed_insert(ContentType::from(mime_guess::mime::TEXT_HTML_UTF_8));
-            self.html
-                .replace(
-                    "__ASSETS_PREFIX__",
-                    &format!("{}{}", self.args.uri_prefix, self.assets_prefix),
-                )
+            let new_html = self.html.replace(
+                "__ASSETS_PREFIX__",
+                &format!("{}{}", self.args.uri_prefix, self.assets_prefix),
+            );
+            new_html
                 .replace("__INDEX_DATA__", &serde_json::to_string(&data)?)
+                .replace(
+                    " hidden\">__MARKDOWN_README__",
+                    &Server::get_and_render_markdown(path, maybe_readme_md)
+                        .await
+                        .unwrap_or(String::new()),
+                )
         };
         res.headers_mut()
             .typed_insert(ContentLength(output.as_bytes().len() as u64));
@@ -1210,6 +1225,29 @@ impl Server {
         }
         *res.body_mut() = body_full(output);
         Ok(())
+    }
+
+    async fn get_and_render_markdown(
+        base_path: &Path,
+        maybe_readme_md: Option<PathItem>,
+    ) -> Result<String> {
+        if let Some(path_item) = maybe_readme_md {
+            let path = &base_path.join(&path_item.name);
+            let (file, meta) = tokio::join!(fs::File::open(path), fs::metadata(path),);
+            let (mut file, meta) = (file?, meta?);
+            // sanity limits on markdown size
+            if meta.len() <= MARKDOWN_README_TEXT_MAX_SIZE {
+                let mut contents = String::new();
+                file.read_to_string(&mut contents).await?;
+                // now need to render the markdown
+                let parser = pulldown_cmark::Parser::new(&contents);
+                let mut output = String::new();
+                pulldown_cmark::html::push_html(&mut output, parser);
+                output.insert_str(0, "\">"); // kludge: removes the 'hidden' tag in the html without using js
+                return Ok(output);
+            }
+        }
+        Ok(" hidden\">".to_string()) // kludge: preserves the hidden tag in the html without using js
     }
 
     fn auth_reject(&self, res: &mut Response) -> Result<()> {
@@ -1409,7 +1447,7 @@ struct EditData {
     editable: bool,
 }
 
-#[derive(Debug, Serialize, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Serialize, Eq, PartialEq, Ord, PartialOrd)]
 struct PathItem {
     path_type: PathType,
     name: String,
@@ -1504,7 +1542,7 @@ impl PathItem {
     }
 }
 
-#[derive(Debug, Serialize, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Serialize, Eq, PartialEq)]
 enum PathType {
     Dir,
     SymlinkDir,
