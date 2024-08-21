@@ -1175,7 +1175,7 @@ impl Server {
         );
         let readwrite = access_paths.perm().readwrite();
 
-        let maybe_readme = paths
+        let maybe_readme_md = paths
             .iter()
             .find(|p| p.base_name().to_lowercase() == "readme.md")
             .cloned();
@@ -1208,7 +1208,7 @@ impl Server {
                 .replace("__INDEX_DATA__", &serde_json::to_string(&data)?)
                 .replace(
                     "__MARKDOWN_README__",
-                    &Server::get_and_render_markdown(path, maybe_readme)
+                    &Server::get_and_render_markdown(path, maybe_readme_md)
                         .await
                         .unwrap_or(String::new()),
                 )
@@ -1230,9 +1230,9 @@ impl Server {
 
     async fn get_and_render_markdown(
         base_path: &Path,
-        maybe_readme: Option<PathItem>,
+        maybe_readme_md: Option<PathItem>,
     ) -> Result<String> {
-        if let Some(path_item) = maybe_readme {
+        if let Some(path_item) = maybe_readme_md {
             println!("Found README.md!");
             let path = &base_path.join(&path_item.name);
             let (file, meta) = tokio::join!(fs::File::open(path), fs::metadata(path),);
