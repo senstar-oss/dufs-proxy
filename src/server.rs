@@ -951,8 +951,7 @@ impl Server {
                 "__ASSETS_PREFIX__",
                 &format!("{}{}", self.args.uri_prefix, self.assets_prefix),
             )
-            .replace("__INDEX_DATA__", &serde_json::to_string(&data)?)
-            .replace("__MARKDOWN_README__", "");
+            .replace("__INDEX_DATA__", &serde_json::to_string(&data)?);
         res.headers_mut()
             .typed_insert(ContentLength(output.as_bytes().len() as u64));
         if head_only {
@@ -1207,7 +1206,7 @@ impl Server {
             new_html
                 .replace("__INDEX_DATA__", &serde_json::to_string(&data)?)
                 .replace(
-                    "__MARKDOWN_README__",
+                    " hidden\">__MARKDOWN_README__",
                     &Server::get_and_render_markdown(path, maybe_readme_md)
                         .await
                         .unwrap_or(String::new()),
@@ -1233,7 +1232,6 @@ impl Server {
         maybe_readme_md: Option<PathItem>,
     ) -> Result<String> {
         if let Some(path_item) = maybe_readme_md {
-            println!("Found README.md!");
             let path = &base_path.join(&path_item.name);
             let (file, meta) = tokio::join!(fs::File::open(path), fs::metadata(path),);
             let (mut file, meta) = (file?, meta?);
@@ -1245,10 +1243,11 @@ impl Server {
                 let parser = pulldown_cmark::Parser::new(&contents);
                 let mut output = String::new();
                 pulldown_cmark::html::push_html(&mut output, parser);
+                output.insert_str(0, "\">"); // kludge: removes the 'hidden' tag in the html without using js
                 return Ok(output);
             }
         }
-        Ok(String::new())
+        Ok(" hidden\">".to_string()) // kludge: preserves the hidden tag in the html without using js
     }
 
     fn auth_reject(&self, res: &mut Response) -> Result<()> {
